@@ -18,7 +18,7 @@ WAITING_FOR_TOKEN_BALANCE = 1
 # Creates a liquidity fund contract for managing liquidity on a Quipuswap pair
 # Allows the "Executor" address to add liquidity to Quipuswap
 # Allows the "Governor" address to divest liquidity and claim rewards
-# Allows the "Governor" address to transfer tokens and XTZ
+# Allows the "Governor" address to reclaim tokens and XTZ
 class LiquidityFundContract(sp.Contract):
     def __init__(
         self, 
@@ -26,6 +26,9 @@ class LiquidityFundContract(sp.Contract):
         executorContractAddress = Addresses.EXECUTOR_ADDRESS,
         tokenContractAddress = Addresses.TOKEN_ADDRESS,
         quipuswapContractAddress = Addresses.QUIPUSWAP_DEX_ADDRESS,
+        harbingerContractAddress = Addresses.HARBINGER_ADDRESS,
+
+		volatilityTolerance = sp.nat(5), # 5%
         
         state = IDLE,
         sendAllTokens_destination = sp.none,
@@ -37,7 +40,10 @@ class LiquidityFundContract(sp.Contract):
             governorContractAddress = governorContractAddress,
             executorContractAddress = executorContractAddress,
             tokenContractAddress = tokenContractAddress,
-            quipuswapContractAddress = savingsPoolContractAddress,
+            quipuswapContractAddress = quipuswapContractAddress,
+            harbingerContractAddress = harbingerContractAddress,
+
+			volatilityTolerance = volatilityTolerance,
 
             # State machine
             state = state,
@@ -60,16 +66,32 @@ class LiquidityFundContract(sp.Contract):
     ################################################################
 
     @sp.entry_point
-    def addLiquidity(self, tokensToAdd, mutezToAdd):
-        sp.set_type(tokensToAdd, sp.TNat)
-        sp.set_type(mutezToAdd, sp.TNat)
+    def addLiquidity(self, param):
+		sp.set_type(param, sp.TPair(sp.TNat, sp.TNat))
 
         # Verify the caller is the permissioned executor account.
         sp.verify(sp.sender == self.data.executorContractAddress, message = Errors.NOT_EXECUTOR)
 
-        # DO WE NEED TO APPROVE KUSD CONTRACT BEFORE ADD? I THINK NO
+		# Destructure parameters.
+        tokensToAdd = sp.fst(param)
+        mutezToAdd = sp.snd(param)
 
-        # TODO ADD HARBINGER CHECK vs tokensToAdd // mutezToAdd
+        # DO WE NEED TO APPROVE ON KUSD CONTRACT BEFORE ADD? I THINK NO
+
+        # Read vwap from Harbinger views
+        harbingerVwap = sp.view(
+			"getPrice",
+			self.data.harbingerContractAddress,
+			Constants.ASSET_CODE,
+			sp.TPair(sp.TTimestamp, sp.TNat)
+        ).open_some(message = Errors.VWAP_VIEW_ERROR)
+
+		harbingerPrice = (sp.snd(harbingerVwap))
+		inputPrice = tokensToAdd // mutezToAdd // 1000000
+
+		# Check for volatility difference between Harbinger and function input
+    	volatilityDifference = (abs(harbingerPrice - inputPrice) // harbingerPrice) * 100 # because tolerance is a percent
+    	sp.verify(self.data.volatilityTolerance > volatilityDifference, Errors.VOLATILITY)
 
         # Add the liquidity to the Quipuswap contract.
         addHandle = sp.contract(
@@ -302,6 +324,14 @@ class LiquidityFundContract(sp.Contract):
 
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
         self.data.executorContractAddress = newExecutorContractAddress
+	
+	# Set volatility tolerance (in percent)
+  	@sp.entry_point
+  	def setVolatilityTolerance(self, newVolatilityTolerance):
+    	sp.set_type(newVolatilityTolerance, sp.TNat)
+
+    	sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
+    	self.data.volatilityTolerance = newVolatilityTolerance
 
 # Only run tests if this file is main.
 if __name__ == "__main__":
