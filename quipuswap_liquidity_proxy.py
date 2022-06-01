@@ -43,7 +43,7 @@ class LiquidityFundContract(sp.Contract):
             quipuswapContractAddress = quipuswapContractAddress,
             harbingerContractAddress = harbingerContractAddress,
 
-			volatilityTolerance = volatilityTolerance,
+	    volatilityTolerance = volatilityTolerance,
 
             # State machine
             state = state,
@@ -67,12 +67,12 @@ class LiquidityFundContract(sp.Contract):
 
     @sp.entry_point
     def addLiquidity(self, param):
-		sp.set_type(param, sp.TPair(sp.TNat, sp.TNat))
+	sp.set_type(param, sp.TPair(sp.TNat, sp.TNat))
 
         # Verify the caller is the permissioned executor account.
         sp.verify(sp.sender == self.data.executorContractAddress, message = Errors.NOT_EXECUTOR)
 
-		# Destructure parameters.
+	# Destructure parameters.
         tokensToAdd = sp.fst(param)
         mutezToAdd = sp.snd(param)
 
@@ -89,7 +89,7 @@ class LiquidityFundContract(sp.Contract):
 		harbingerPrice = (sp.snd(harbingerVwap))
 		inputPrice = tokensToAdd // mutezToAdd // 1000000
 
-		# Check for volatility difference between Harbinger and function input
+	# Check for volatility difference between Harbinger and function input
     	volatilityDifference = (abs(harbingerPrice - inputPrice) // harbingerPrice) * 100 # because tolerance is a percent
     	sp.verify(self.data.volatilityTolerance > volatilityDifference, Errors.VOLATILITY)
 
@@ -325,9 +325,9 @@ class LiquidityFundContract(sp.Contract):
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
         self.data.executorContractAddress = newExecutorContractAddress
 	
-	# Set volatility tolerance (in percent)
-  	@sp.entry_point
-  	def setVolatilityTolerance(self, newVolatilityTolerance):
+    # Set volatility tolerance (in percent)
+    @sp.entry_point
+    def setVolatilityTolerance(self, newVolatilityTolerance):
     	sp.set_type(newVolatilityTolerance, sp.TNat)
 
     	sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
