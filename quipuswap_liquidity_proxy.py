@@ -15,12 +15,18 @@ WAITING_FOR_TOKEN_BALANCE = 1
 # Contract
 ################################################################
 
-class DevFundContract(sp.Contract):
+# Creates a liquidity fund contract for managing liquidity on a Quipuswap pair
+# Allows the "Executor" address to add liquidity to Quipuswap
+# Allows the "Governor" address to divest liquidity and claim rewards
+# Allows the "Governor" address to transfer tokens and XTZ
+class LiquidityFundContract(sp.Contract):
     def __init__(
         self, 
         governorContractAddress = Addresses.GOVERNOR_ADDRESS,
-        administratorContractAddress = Addresses.FUND_ADMINISTRATOR_ADDRESS,
+        executorContractAddress = Addresses.EXECUTOR_ADDRESS,
         tokenContractAddress = Addresses.TOKEN_ADDRESS,
+        quipuswapContractAddress = Addresses.QUIPUSWAP_DEX_ADDRESS,
+        
         state = IDLE,
         sendAllTokens_destination = sp.none,
         **extra_storage
@@ -28,10 +34,10 @@ class DevFundContract(sp.Contract):
         self.exception_optimization_level = "DefaultUnit"
 
         self.init(
-            # Addresses
             governorContractAddress = governorContractAddress,
-            administratorContractAddress = administratorContractAddress,
+            executorContractAddress = executorContractAddress,
             tokenContractAddress = tokenContractAddress,
+            quipuswapContractAddress = savingsPoolContractAddress,
 
             # State machine
             state = state,
@@ -44,23 +50,66 @@ class DevFundContract(sp.Contract):
     # Public API
     ################################################################
 
-    # Allow transfers into the fund as a consequence of liquidation.
+    # Allow XTZ transfers into the fund.
     @sp.entry_point
     def default(self):
         pass
 
     ################################################################
-    # Administrator API
+    # Quipuswap API
     ################################################################
 
     @sp.entry_point
-    def setDelegate(self, newDelegate):
-        sp.set_type(newDelegate, sp.TOption(sp.TKeyHash))
+    def addLiquidity(self, tokensToAdd, mutezToAdd):
+        sp.set_type(tokensToAdd, sp.TNat)
+        sp.set_type(mutezToAdd, sp.TNat)
 
-        # Verify the caller is the admin.
-        sp.verify(sp.sender == self.data.administratorContractAddress, message = Errors.NOT_ADMIN)
+        # Verify the caller is the permissioned executor account.
+        sp.verify(sp.sender == self.data.executorContractAddress, message = Errors.NOT_EXECUTOR)
 
-        sp.set_delegate(newDelegate)
+        # DO WE NEED TO APPROVE KUSD CONTRACT BEFORE ADD? I THINK NO
+
+        # TODO ADD HARBINGER CHECK vs tokensToAdd // mutezToAdd
+
+        # Add the liquidity to the Quipuswap contract.
+        addHandle = sp.contract(
+            sp.TNat,
+            self.data.quipuswapContractAddress,
+            "investLiquidity"
+        ).open_some()
+        sp.transfer(tokensToAdd, sp.mutez(mutezToAdd), addHandle)
+    
+    @sp.entry_point
+    def removeLiquidity(self, tokensToRemove):
+        sp.set_type(tokensToRemove, sp.TNat)
+
+        # Verify the caller is the governor address
+        sp.verify(sp.sender == self.data.GOVERNOR_ADDRESS, message = Errors.NOT_GOVERNOR)
+
+        # Remove liquidity from the Quipuswap contract
+        divestHandle = sp.contract(
+            sp.TNat,
+            self.data.quipuswapContractAddress,
+            "divestLiquidity"
+        ).open_some()
+        sp.transfer(tokensToRemove, sp.mutez(0), divestHandle)
+
+    @sp.entry_point
+    def claimRewards(self):
+
+        # Verify the caller is the governor address
+        sp.verify(sp.sender == self.data.GOVERNOR_ADDRESS, message = Errors.NOT_GOVERNOR)
+
+        address = sp.self_address
+
+        # Claim rewards from the Quipuswap contract
+        claimHandle = sp.contract(
+            sp.TAddress,
+            self.data.quipuswapContractAddress,
+            "withdrawProfit"
+        ).open_some()
+        sp.transfer(address, sp.mutez(0), claimHandle) 
+
 
     ################################################################
     # Governance
@@ -246,13 +295,13 @@ class DevFundContract(sp.Contract):
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
         self.data.governorContractAddress = newGovernorContractAddress
 
-    # Update the administrator contract.
+    # Update the executor contract.
     @sp.entry_point
-    def setAdministratorContract(self, newAdministratorContractAddress):
-        sp.set_type(newAdministratorContractAddress, sp.TAddress)
+    def setAdministratorContract(self, newExecutorContractAddress):
+        sp.set_type(newExecutorContractAddress, sp.TAddress)
 
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
-        self.data.administratorContractAddress = newAdministratorContractAddress
+        self.data.executorContractAddress = newExecutorContractAddress
 
 # Only run tests if this file is main.
 if __name__ == "__main__":
