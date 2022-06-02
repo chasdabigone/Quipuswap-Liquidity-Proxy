@@ -109,28 +109,15 @@ class LiquidityFundContract(sp.Contract):
         sp.transfer(tokensToAdd, sp.utils.nat_to_mutez(mutezToAdd), addHandle)
     
     @sp.entry_point
-    def removeLiquidity(self, amountToRemove):
-        sp.set_type(amountToRemove, sp.TNat)
+    def removeLiquidity(self, param):
+        sp.set_type(param, sp.TPair(sp.TPair(sp.TNat, sp.TNat), sp.TNat))
 
         # Verify the caller is the executor address
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
 
-        # TODO ADD HARBINGER VIEW WITH VOLATILITY TOLERANCE TO CREATE RANGE WITH min_tez and min_tokens
-        # Read vwap from Harbinger Normalizer views
-        harbingerVwap = sp.view(
-            "getPrice",
-            self.data.harbingerContractAddress,
-            Constants.ASSET_CODE,
-            sp.TPair(sp.TTimestamp, sp.TNat)
-        ).open_some(message = Errors.VWAP_VIEW_ERROR)
-
-        harbingerPrice = (sp.snd(harbingerVwap))
-
-        tolerance = sp.as_nat(100 - self.data.volatilityTolerance)
-        # Calculate minimum required XTZ out with current volatility tolerance
-        minTez = (amountToRemove // harbingerPrice // 1000000000000) * (tolerance // 100)
-        # Calculate minimum required tokens out with current volatility tolerance
-        minTokens = harbingerPrice * 1000000000000 * (tolerance // 100)
+        minTez = sp.fst(sp.fst(param))
+        minTokens = sp.snd(sp.fst(param))
+        amountToRemove = sp.snd(param)
 
         # Remove liquidity from the Quipuswap contract
         divestHandle = sp.contract(
