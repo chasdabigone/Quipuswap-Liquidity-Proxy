@@ -66,6 +66,7 @@ class LiquidityFundContract(sp.Contract):
 
     @sp.entry_point
     def addLiquidity(self, param):
+        # TODO Name these
         sp.set_type(param, sp.TPair(sp.TNat, sp.TNat))
 
         # Verify the caller is the permissioned executor account.
@@ -91,7 +92,7 @@ class LiquidityFundContract(sp.Contract):
         sp.verify(self.data.volatilityTolerance > volatilityDifference, Errors.VOLATILITY)
 
         
-        # TODO ADD APPROVE
+        # Approve Quipuswap contract to spend on token contract
         approveHandle = sp.contract(
             sp.TPair(sp.TAddress, sp.TNat),
             self.data.tokenContractAddress,
@@ -110,22 +111,24 @@ class LiquidityFundContract(sp.Contract):
     
     @sp.entry_point
     def removeLiquidity(self, param):
+        # TODO Name these
         sp.set_type(param, sp.TPair(sp.TPair(sp.TNat, sp.TNat), sp.TNat))
 
         # Verify the caller is the executor address
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
 
-        minTez = sp.fst(sp.fst(param))
-        minTokens = sp.snd(sp.fst(param))
-        amountToRemove = sp.snd(param)
+        # Destructure parameters
+        minMutez = sp.fst(sp.fst(param))
+        minTokens = sp.snd(param)
+        amountToRemove = sp.snd(sp.fst(param))
 
         # Remove liquidity from the Quipuswap contract
         divestHandle = sp.contract(
-            sp.TPair(sp.TPair(sp.TNat, sp.TNat), sp.TNat), # This may be wrong
+            sp.TPair(sp.TPair(sp.TNat, sp.TNat), sp.TNat),
             self.data.quipuswapContractAddress,
             "divestLiquidity"
         ).open_some(message = Errors.DEX_CONTRACT_ERROR)
-        arg = sp.pair(sp.pair(minTez, minTokens), amountToRemove)
+        arg = sp.pair(sp.pair(minMutez, minTokens), amountToRemove)
         sp.transfer(arg, sp.mutez(0), divestHandle)
 
     @sp.entry_point
@@ -344,6 +347,14 @@ class LiquidityFundContract(sp.Contract):
 
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
         self.data.volatilityTolerance = newVolatilityTolerance
+
+    # Update the harbinger normalizer contract.
+    @sp.entry_point
+    def setHarbingerContract(self, newHarbingerContractAddress):
+        sp.set_type(newHarbingerContractAddress, sp.TAddress)
+
+        sp.verify(sp.sender == self.data.harbingerContractAddress, message = Errors.NOT_GOVERNOR)
+        self.data.harbingerContractAddress = newHarbingerContractAddress
 
 # Only run tests if this file is main.
 if __name__ == "__main__":
