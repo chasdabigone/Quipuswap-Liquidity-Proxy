@@ -353,7 +353,7 @@ class LiquidityFundContract(sp.Contract):
     def setHarbingerContract(self, newHarbingerContractAddress):
         sp.set_type(newHarbingerContractAddress, sp.TAddress)
 
-        sp.verify(sp.sender == self.data.harbingerContractAddress, message = Errors.NOT_GOVERNOR)
+        sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
         self.data.harbingerContractAddress = newHarbingerContractAddress
 
 # Only run tests if this file is main.
