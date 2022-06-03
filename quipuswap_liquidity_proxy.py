@@ -66,15 +66,14 @@ class LiquidityFundContract(sp.Contract):
 
     @sp.entry_point
     def addLiquidity(self, param):
-        # TODO Name these
-        sp.set_type(param, sp.TPair(sp.TNat, sp.TNat))
+        sp.set_type(param, sp.TRecord(tokens = sp.TNat, mutez = sp.TNat).layout(("tokens", "mutez")))
 
         # Verify the caller is the permissioned executor account.
         sp.verify(sp.sender == self.data.executorContractAddress, message = Errors.NOT_EXECUTOR)
 
         # Destructure parameters.
-        tokensToAdd = sp.fst(param)
-        mutezToAdd = sp.snd(param)
+        tokensToAdd = param.tokens
+        mutezToAdd = param.mutez
 
         # Read vwap from Harbinger Normalizer views
         harbingerVwap = sp.view(
@@ -111,16 +110,15 @@ class LiquidityFundContract(sp.Contract):
     
     @sp.entry_point
     def removeLiquidity(self, param):
-        # TODO Name these
-        sp.set_type(param, sp.TPair(sp.TPair(sp.TNat, sp.TNat), sp.TNat))
+        sp.set_type(param, sp.TRecord(min_mutez_out = sp.TNat, min_tokens_out = sp.TNat, lp_to_remove = sp.TNat).layout((("min_mutez_out", "min_tokens_out"), ("lp_to_remove"))))
 
         # Verify the caller is the executor address
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
 
         # Destructure parameters
-        minMutez = sp.fst(sp.fst(param))
-        minTokens = sp.snd(param)
-        amountToRemove = sp.snd(sp.fst(param))
+        minMutez = param.min_mutez_out
+        minTokens = param.min_tokens_out
+        amountToRemove = param.lp_to_remove
 
         # Remove liquidity from the Quipuswap contract
         divestHandle = sp.contract(
