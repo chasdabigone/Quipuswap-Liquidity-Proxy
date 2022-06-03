@@ -1,8 +1,8 @@
 import smartpy as sp
 
-Addresses = sp.io.import_stored_contract("addresses_liquidity")
-Constants = sp.io.import_stored_contract("constants_liquidity")
-Errors = sp.io.import_stored_contract("errors_liquidity")
+Addresses = sp.io.import_script_from_url("file:test-helpers/addresses.py")
+Constants = sp.io.import_script_from_url("file:common/constants.py")
+Errors = sp.io.import_script_from_url("file:common/errors.py")
 
 ################################################################
 # State Machine
