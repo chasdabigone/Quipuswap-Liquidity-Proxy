@@ -355,4 +355,58 @@ class LiquidityFundContract(sp.Contract):
                     txs = sp.TList(
                         sp.TRecord(
                             amount = sp.TNat,
-                          
+                            to_ = sp.TAddress, 
+                            token_id = sp.TNat,
+                        ).layout(("to_", ("token_id", "amount")))
+                    )
+                ).layout(("from_", "txs"))
+            ),
+            params.tokenContractAddress,
+            "transfer"
+        ).open_some()
+
+        arg = [
+            sp.record(
+            from_ = sp.self_address,
+            txs = [
+                sp.record(
+                    amount = params.amount,
+                    to_ = params.destination,
+                    token_id = params.tokenId
+                )
+            ]
+            )
+        ]
+        sp.transfer(arg, sp.mutez(0), handle)                
+
+    # Update the governor contract.
+    @sp.entry_point
+    def setGovernorContract(self, newGovernorContractAddress):
+        sp.set_type(newGovernorContractAddress, sp.TAddress)
+
+        sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
+        self.data.governorContractAddress = newGovernorContractAddress
+
+    # Update the executor contract.
+    @sp.entry_point
+    def setExecutorContract(self, newExecutorContractAddress):
+        sp.set_type(newExecutorContractAddress, sp.TAddress)
+
+        sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
+        self.data.executorContractAddress = newExecutorContractAddress
+    
+    # Set volatility tolerance (in percent)
+    @sp.entry_point
+    def setVolatilityTolerance(self, newVolatilityTolerance):
+        sp.set_type(newVolatilityTolerance, sp.TNat)
+
+        sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
+        self.data.volatilityTolerance = newVolatilityTolerance
+
+    # Update the harbinger normalizer contract.
+    @sp.entry_point
+    def setHarbingerContract(self, newHarbingerContractAddress):
+        sp.set_type(newHarbingerContractAddress, sp.TAddress)
+
+        sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
+        self.data.harbingerContractAddress = newHarbingerContractAddress
