@@ -1,4 +1,4 @@
-import smartpy as sp 
+import smartpy as sp
 
 Addresses = sp.io.import_script_from_url("file:test-helpers/addresses.py")
 Constants = sp.io.import_script_from_url("file:common/constants.py")
