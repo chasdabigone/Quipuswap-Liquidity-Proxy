@@ -28,6 +28,7 @@ class LiquidityFundContract(sp.Contract):
         harbingerContractAddress = Addresses.HARBINGER_ADDRESS,
 
         volatilityTolerance = sp.nat(5), # 5%
+        maxDataDelaySec = sp.nat(60 * 5), # 5 minutes
         
         state = IDLE,
         sendAllTokens_destination = sp.none,
@@ -43,6 +44,7 @@ class LiquidityFundContract(sp.Contract):
             harbingerContractAddress = harbingerContractAddress,
 
             volatilityTolerance = volatilityTolerance,
+            maxDataDelaySec = maxDataDelaySec,
 
             # State machine
             state = state,
@@ -402,6 +404,14 @@ class LiquidityFundContract(sp.Contract):
 
         sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
         self.data.volatilityTolerance = newVolatilityTolerance
+
+    # Set maximum oracle data delay in seconds
+    @sp.entry_point
+    def setMaxDataDelaySec(self, newMaxDataDelaySec):
+        sp.set_type(newMaxDataDelaySec, sp.TNat)
+
+        sp.verify(sp.sender == self.data.governorContractAddress, message = Errors.NOT_GOVERNOR)
+        self.data.maxDataDelaySec = newMaxDataDelaySec
 
     # Update the harbinger normalizer contract.
     @sp.entry_point
