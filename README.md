@@ -9,7 +9,7 @@ The LiquidityFund can add and remove liquidity, along with utilizing Quipuswap g
 
 The LiquidityFund contract has two permissions on it: 
 
-(1) Executor: Can use the `addLiquidity` and `veto` functions 
+(1) Executor: Can use the `addLiquidity` and `veto` functions
 
 (2) Governor: Can utilize `removeLiquidity`, `claimRewards`, and `vote` functions. Can swap Governors, Administrators and transfer XTZ
 
@@ -46,6 +46,8 @@ The LiquidityFund contract stores the following:
 `harbingerContractAddress` (address): Address of the Harbinger Oracle Normalizer
 
 `volatilityTolerance` (nat): A number in percent that determines how much spread between oracle and Quipuswap is allowed
+
+`maxDataDelaySec` (nat): A number that determines how long in seconds before data from Harbinger is considered stale
 
 
 These storage parameters are governable and can be changed by governorContractAddress.
@@ -93,5 +95,7 @@ The LiquidityFund contract has the following entrypoints:
 `setExecutorContract`: Update the executorContractAddress. Can only be called by the governorContractAddress.
 
 `setVolatilityTolerance`: Update the volatilityTolerance. Can only be called by the governorContractAddress.
+
+`setMaxDataDelaySec`: Update the maxDataDelaySec. Can only be called by the governorContractAddress.
 
 `setHarbingerContract`: Update the harbingerContractAddress. Can only be called by the governorContractAddress.
