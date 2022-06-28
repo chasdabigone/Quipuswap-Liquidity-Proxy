@@ -95,7 +95,7 @@ class LiquidityFundContract(sp.Contract):
         sp.verify(self.data.volatilityTolerance > volatilityDifference, Errors.VOLATILITY)
 
         # Assert that the Harbinger data is newer than max data delay
-        dataAge = sp.as_nat(sp.now - sp.fst(sp.snd(harbingerVwap)))
+        dataAge = sp.as_nat(sp.now - sp.fst(harbingerVwap))
         sp.verify(dataAge <= self.data.maxDataDelaySec, Errors.STALE_DATA)
         
         # Approve Quipuswap contract to spend on token contract
