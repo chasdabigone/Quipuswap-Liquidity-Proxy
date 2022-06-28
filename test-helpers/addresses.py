@@ -9,10 +9,10 @@ GOVERNOR_ADDRESS = sp.address("tz1YYnf7vGXqCmB1shNg4rHiTz5gwWTDYceB")
 EXECUTOR_ADDRESS = sp.address("tz1YYnf7vGXqCmB1shNg4rHiTz5gwWTDYceB")
 
 # The address that acts as the token contract.
-TOKEN_ADDRESS = sp.address("KT1K9gCRgaLRFKTErYt1wVxA3Frb9FjasjTV")
+TOKEN_ADDRESS = sp.address("KT1RBR9i6R7T56DJbaUtzDNuCt9KHLM8bVpW")
 
 # The address of a XTZ/kUSD Quipuswap contract
-QUIPUSWAP_ADDRESS = sp.address("KT1K4EwTpbvYN9agJdjpyJm4ZZdhpUNKB3F6")
+QUIPUSWAP_ADDRESS = sp.address("KT1VVYfncoCWrwG6Bwd4MFuq3Xj8c4ndW5qF")
 
 # The address of the Harbinger Normalizer (views)
 HARBINGER_ADDRESS = sp.address("KT1ENe4jbDE1QVG1euryp23GsAeWuEwJutQX")
